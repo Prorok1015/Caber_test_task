@@ -19,6 +19,6 @@ namespace t1 {
 	/// <summary>
 	///  Функция выводит в поток стандартного ввода вывода целое беззнаковое число в двоичном виде
 	/// </summary>
-	/// <param name="num"> любое знаковое целое число</param>
+	/// <param name="num"> любое знаковое целое число </param>
 	void print_as_binary(int num);
 }
