@@ -1,5 +1,6 @@
 ﻿#include <iostream>
 #define NOUINPUT1
+#define NOUINPUT
 #include "Tests.h"
 
 int main()

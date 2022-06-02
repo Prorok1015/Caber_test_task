@@ -2,7 +2,9 @@
 
 #include "1_task/first.h"
 #include "2_task/second.h"
+#include "3_task/third.h"
 
+#include <stdio.h>
 #include <iostream>
 #include <string>
 
@@ -12,9 +14,13 @@ namespace tests {
 		std::cout << std::endl << "TASK 1 BEGIN" << std::endl;
 		std::cout << "test 1 name: const data" << std::endl;
 		// prepaire + call
+		std::cout << "number " << 3 << " as binary: ";
 		t1::print_as_binary(3);
+		std::cout << "number " << -3 << " as binary: ";
 		t1::print_as_binary(-3);
+		std::cout << "number " << 1563254657 << " as binary: ";
 		t1::print_as_binary(1563254657);
+		std::cout << "number " << -1563254657 << " as binary: ";
 		t1::print_as_binary(-1563254657);
 
 		auto* data1 = t1::as_binary(3);
@@ -79,22 +85,47 @@ namespace tests {
 	}
 
 	bool test_3_task() {
+		std::cout << std::endl << "TASK 3 BEGIN" << std::endl;
+		std::cout << "test 1 name: const data" << std::endl;
+		t3::List lst;
+		lst.push_back("str1");
+		lst.push_back("str2");
+		lst.push_back("str3");
+		lst.push_back("str4");
+		lst.push_back("str5");
+		lst.push_back("str6");
+		lst.push_back("str7");
+		lst.push_back("str8");
 
-		return true;
-	}
+		t3::List lst2;
+		lst2 = lst;
 
-	bool stress_test_2(int n) {
-
-		for (int i = 0; i < n; ++i)
+		auto tmp = lst.get_head();
+		while (tmp)
 		{
-			char* data = new char[31];
-			data[30] = '\0';
-			for (int j = 0; j < 30; ++j)
-				data[j] = 'A';
-
-			t2::remove_dups(data);
-			delete[] data;
+			std::cout << tmp->data << ", ";
+			if (tmp->rand)
+				std::cout << "rand: " << tmp->rand->data << ", ";
+			tmp = tmp->next;
 		}
+		std::cout << " |" << std::endl;
+		tmp = lst2.get_head();
+		while (tmp)
+		{
+			std::cout << tmp->data << ", ";
+			if (tmp->rand)
+				std::cout << "rand: " << tmp->rand->data << ", ";
+			tmp = tmp->next;
+		}
+		std::cout << " |" << std::endl;
+		if (lst == lst2) std::cout << "equal" << std::endl; else std::cout << "NOT EQUAL" << std::endl;
+		/*
+		auto path = "task3.txt";
+		FILE* f = fopen(path, "wb");
+		lst.serialize(f);
+		fclose(f);
+		*/
+		std::cout << "TASK 3 END" << std::endl;
 		return true;
 	}
 
