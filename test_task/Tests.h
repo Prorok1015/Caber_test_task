@@ -85,9 +85,22 @@ namespace tests {
 	}
 
 	bool test_3_task() {
+
+		auto f_out = [](t3::List& lst) {
+			auto tmp = lst.get_head();
+			while (tmp)
+			{
+				std::cout << tmp->data << ", ";
+				if (tmp->rand)
+					std::cout << "rand: " << tmp->rand->data << ", ";
+				tmp = tmp->next;
+			}
+			std::cout << " |" << std::endl;
+		};
+
 		std::cout << std::endl << "TASK 3 BEGIN" << std::endl;
 		std::cout << "test 1 name: const data" << std::endl;
-		t3::List lst;
+		t3::List lst, lst_double;
 		lst.push_back("str1");
 		lst.push_back("str2");
 		lst.push_back("str3");
@@ -97,34 +110,38 @@ namespace tests {
 		lst.push_back("str7");
 		lst.push_back("str8");
 
-		t3::List lst2;
-		lst2 = lst;
-
-		auto tmp = lst.get_head();
-		while (tmp)
-		{
-			std::cout << tmp->data << ", ";
-			if (tmp->rand)
-				std::cout << "rand: " << tmp->rand->data << ", ";
-			tmp = tmp->next;
-		}
-		std::cout << " |" << std::endl;
-		tmp = lst2.get_head();
-		while (tmp)
-		{
-			std::cout << tmp->data << ", ";
-			if (tmp->rand)
-				std::cout << "rand: " << tmp->rand->data << ", ";
-			tmp = tmp->next;
-		}
-		std::cout << " |" << std::endl;
-		if (lst == lst2) std::cout << "equal" << std::endl; else std::cout << "NOT EQUAL" << std::endl;
-		/*
+		lst_double.push_back("demo1");
+		lst_double.push_back("demo2");
+		lst_double.push_back("demo3");
+		lst_double.push_back("demo4");
+		lst_double.push_back("demo5");
+		lst_double.push_back("demo6");
+		lst_double.push_back("demo7");
+		lst_double.push_back("demo8");
+		lst.deserialize(nullptr);
 		auto path = "task3.txt";
-		FILE* f = fopen(path, "wb");
-		lst.serialize(f);
-		fclose(f);
-		*/
+		FILE* file = nullptr;
+		if (!fopen_s(&file, path, "wb"))
+		{
+			lst.serialize(file);
+			lst_double.serialize(file);
+			std::fclose(file);
+			file = nullptr;
+		}
+
+		t3::List from_file;
+		t3::List from_file2;
+		if (!fopen_s(&file, path, "rb"))
+		{
+			from_file.deserialize(file);
+			from_file2.deserialize(file);
+			std::fclose(file);
+		}
+
+		f_out(from_file);
+		f_out(from_file2);
+		if (lst != from_file) return false;
+		if (lst_double != from_file2) return false;
 		std::cout << "TASK 3 END" << std::endl;
 		return true;
 	}

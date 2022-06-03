@@ -1,32 +1,22 @@
 #include <string_view>
 #include "third.h"
-#include <iostream>
-#include <random>
-#include <string>
+
 #include <unordered_map>
+#include <fstream>
 
-
-void t3::List::serialize(FILE* file)
-{
-}
-
-void t3::List::deserialize(FILE* file)
-{
-}
-
-
-/*-----------------------------Вспомогательные функции--------------------------------------*/
 using NodePtr = t3::ListNode*;
 template <typename T, typename U> using map = std::unordered_map<T, U>;
 
-t3::ListNode* new_or_lazy(t3::ListNode* key, map<NodePtr, NodePtr>& lazyMap);
-
-t3::ListNode* lazy_call(t3::ListNode* rand, map<NodePtr, NodePtr>& lazyMap)
-{
-	if (rand == nullptr) return nullptr;
-	return new_or_lazy(rand, lazyMap);
-}
-
+// идея: создать отображение считываемых данных на сохраняемые,
+// таким образом каждый раз когда нам надо создать новую ноду
+// мы смотрим ключ(в качестве ключа выступает id элемента записанного в файле)
+// если связи с ключом еще нет, то таких данных еще небыло,
+// значит создаем связь и возвращаем новую ноду.
+// я назвал это "ленивый" указатель, 
+// т.к. когда нужно связать поле rand с нодой которой еще нет, 
+// то мы создаем пустую ноду и отдаем указатель на нее
+// расчитывая, что когда до нее дойдут при чтении из файла, то заполним все нужные данные
+// (в том числе если она тоже будет ссылаться на случайную ноду)
 t3::ListNode* new_or_lazy(t3::ListNode* key, map<NodePtr, NodePtr>& lazyMap)
 {
 	if (lazyMap.find(key) == lazyMap.end())
@@ -34,8 +24,105 @@ t3::ListNode* new_or_lazy(t3::ListNode* key, map<NodePtr, NodePtr>& lazyMap)
 	return lazyMap[key];
 }
 
-void t3::List::operator = (List& l2)
+// данная функция используется,
+// чтобы присвоить привязку к случайному элементу.
+// на вход получает id связи с случайным элементом записанным в файле
+t3::ListNode* lazy_call(t3::ListNode* rand, map<NodePtr, NodePtr>& lazyMap)
 {
+	if (!rand) return nullptr;
+	return new_or_lazy(rand, lazyMap);
+}
+
+
+void t3::List::serialize(FILE* file)
+{
+	if (!file) return;
+
+	std::ofstream os(file);
+	// сохраняем общее кол-во элементов 
+	os.write(reinterpret_cast<const char*>(&count), sizeof(count));
+	for(auto tmp = get_head(); tmp; tmp = tmp->next)
+	{
+		size_t size = tmp->data.size();
+		// сохраняем указатель на ноду, он выступает в качестве id записи
+		os.write(reinterpret_cast<const char*>(&tmp), sizeof(tmp)).
+		// сохраняем указатель на свясь со случайной нодой
+		   write(reinterpret_cast<const char*>(&tmp->rand), sizeof(tmp->rand)).
+		// сохраняем размер(в данном случае кол-во) символов в строке
+		   write(reinterpret_cast<const char*>(&size), sizeof(size)).
+		// сохраняем сами символы
+		   write(tmp->data.c_str(), size);
+	}
+	/*
+	 таким образом, блок данных выглядит так:
+		int
+
+		ListNode*
+		ListNode*
+		size_t
+		string
+
+		ListNode*
+		ListNode*
+		size_t
+		string
+
+		...
+	*/
+}
+
+void t3::List::deserialize(FILE* file)
+{
+	if (!file) return;
+
+	std::ifstream is(file);
+
+	clear();
+	// количество элементов для считывания
+	int read_count = 0;
+	// считываем из файла количество элементов которых предстоит считать
+	is.read(reinterpret_cast<char*>(&read_count), sizeof(read_count));
+
+	//карта для отображения элементов из файла к элементам в листе
+	map<NodePtr, NodePtr> lazyMap;
+	while (read_count != count)
+	{
+		ListNode* cmp = nullptr;
+		ListNode* rand = nullptr;
+		size_t size = 0;
+		std::string data;
+
+		// считываем блок данных, если не считалось,то выходим
+		if (!is
+			.read(reinterpret_cast<char*>(&cmp), sizeof(cmp))
+			.read(reinterpret_cast<char*>(&rand), sizeof(rand))
+			.read(reinterpret_cast<char*>(&size), sizeof(size))
+			.read((data.resize(size), data.data()), size)
+			) break;
+
+		// получаем отображенный указатель
+		ListNode* temp = new_or_lazy(cmp, lazyMap);
+		temp->next = nullptr;
+		temp->data = std::move(data);
+
+		if (head)
+		{
+			temp->prev = tail;
+			tail->next = temp;
+			// присваиваем "ленивый" указатель
+			temp->rand = lazy_call(rand, lazyMap);
+			tail = temp;
+		}
+		else //Если список пустой
+		{
+			temp->prev = nullptr;
+			head = tail = temp;
+		}
+		++count;
+	}
+}
+
+void t3::List::clear() {
 	while (head)
 	{
 		tail = head->next;
@@ -43,15 +130,25 @@ void t3::List::operator = (List& l2)
 		head = tail;
 		--count;
 	}
+}
+
+/*-----------------------------Вспомогательные функции--------------------------------------*/
+#include <random>
+void t3::List::operator = (const List& l2)
+{
+	if (this == &l2) return;
+
+	clear();
+
 	map<NodePtr, NodePtr> lazyMap;
-	auto cmp = l2.head;
-	while (cmp)
+	
+	for(auto cmp = l2.head; cmp; cmp = cmp->next)
 	{
 		ListNode* temp = new_or_lazy(cmp, lazyMap);
 		temp->next = nullptr;
 		temp->data = cmp->data;
 
-		if (head != nullptr)
+		if (head)
 		{
 			temp->prev = tail;
 			tail->next = temp;
@@ -65,13 +162,12 @@ void t3::List::operator = (List& l2)
 		}
 		++count;
 
-		cmp = cmp->next;
 	}
 }
 
 bool t3::List::operator == (List& l2)
 {
-	if (l2.count == count) return false;
+	if (l2.count != count) return false;
 
 	auto tmp = head;
 	auto cmp = l2.head;
@@ -123,11 +219,8 @@ t3::ListNode* t3::List::get(int i)
 	ListNode* temp = head;
 	while (temp && i != it)
 	{
-		if (temp != nullptr)
-		{
-			temp = temp->next;
-			++it;
-		}
+		temp = temp->next;
+		++it;	
 	}
 	return temp;
 }

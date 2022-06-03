@@ -1,6 +1,6 @@
 ﻿#include <iostream>
 #define NOUINPUT1
-#define NOUINPUT
+#define NOUINPUT2
 #include "Tests.h"
 
 int main()
