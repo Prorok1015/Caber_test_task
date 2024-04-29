@@ -138,7 +138,9 @@ namespace tests {
 			std::fclose(file);
 		}
 
+		f_out(lst);
 		f_out(from_file);
+		f_out(lst_double);
 		f_out(from_file2);
 		if (lst != from_file) return false;
 		if (lst_double != from_file2) return false;
