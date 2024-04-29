@@ -7,7 +7,7 @@
 
 using NodePtr = t3::ListNode*;
 template <typename T, typename U> using umap = std::unordered_map<T, U>;
-using ListNodeCache = umap<std::uint32_t, NodePtr>;
+using ListNodeCache = umap<std::uint64_t, NodePtr>;
 using namespace std::placeholders;
 
 // идея: создать отображение считываемых данных на сохраняемые,
@@ -15,20 +15,19 @@ using namespace std::placeholders;
 // мы смотрим ключ(в качестве ключа выступает id элемента записанного в файле)
 // если связи с ключом еще нет, то таких данных еще небыло,
 // значит создаем связь и возвращаем новую ноду.
-// я назвал это "ленивый" указатель, 
 // т.к. когда нужно связать поле rand с нодой которой еще нет, 
 // то мы создаем пустую ноду и отдаем указатель на нее
 // расчитывая, что когда до нее дойдут при чтении из файла, то заполним все нужные данные
 // (в том числе если она тоже будет ссылаться на случайную ноду)
-t3::ListNode* require_node(std::uint32_t key, ListNodeCache& lazyMap)
+t3::ListNode* require_node(std::uint64_t key, ListNodeCache& cache)
 {
 	if (!key) {
 		return nullptr;
 	}
 
-	if (lazyMap.find(key) == lazyMap.end())
-		lazyMap[key] = new t3::ListNode;
-	return lazyMap[key];
+	if (cache.find(key) == cache.end())
+		cache[key] = new t3::ListNode;
+	return cache[key];
 }
 
 void t3::List::serialize(FILE* file)
@@ -43,8 +42,8 @@ void t3::List::serialize(FILE* file)
 	for(auto tmp = get_head(); tmp; tmp = tmp->next)
 	{
 		std::uint64_t size = tmp->data.size();
-		std::uint32_t node_key = reinterpret_cast<std::uint32_t>(tmp);
-		std::uint32_t rand_key = reinterpret_cast<std::uint32_t>(tmp->rand);
+		std::uint64_t node_key = reinterpret_cast<std::uint64_t>(tmp);
+		std::uint64_t rand_key = reinterpret_cast<std::uint64_t>(tmp->rand);
 		// сохраняем указатель на ноду, он выступает в качестве id записи
 		os.write(reinterpret_cast<const char*>(&node_key), sizeof(node_key)).
 		// сохраняем указатель на свясь со случайной нодой
@@ -90,8 +89,8 @@ void t3::List::deserialize(FILE* file)
 
 	while (read_count != count)
 	{
-		std::uint32_t key = 0;
-		std::uint32_t key_rand = 0;
+		std::uint64_t key = 0;
+		std::uint64_t key_rand = 0;
 		std::uint64_t size = 0;
 		std::string data;
 
@@ -136,8 +135,8 @@ t3::List& t3::List::operator= (const List& rhs)
 	for(ListNode* right_node = rhs.head; right_node; right_node = right_node->next)
 	{
 		insert_back(right_node->data,
-			std::bind(allocate, reinterpret_cast<std::uint32_t>(right_node)),
-			std::bind(allocate, reinterpret_cast<std::uint32_t>(right_node->rand))
+			std::bind(allocate, reinterpret_cast<std::uint64_t>(right_node)),
+			std::bind(allocate, reinterpret_cast<std::uint64_t>(right_node->rand))
 		);
 	}
 
@@ -192,13 +191,13 @@ void t3::List::insert_back(std::string_view data, std::function<ListNode* ()> al
 	}
 }
 
-t3::ListNode* t3::List::get(int idx)
+t3::ListNode* t3::List::get(std::uint64_t idx)
 {
 	if (idx < 0 || idx > count) {
 		return nullptr;
 	}
 
-	int it = 0;
+	std::uint64_t it = 0;
 	ListNode* cur = head;
 	while (cur && idx != it) {
 		cur = cur->next;

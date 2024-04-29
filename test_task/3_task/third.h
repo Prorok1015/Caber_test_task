@@ -30,7 +30,7 @@ namespace t3 {
 		bool operator == (const List & l2) const noexcept;
 		void push_back(std::string_view data);
 		ListNode* get_head() { return head; };
-		ListNode* get(int i);
+		ListNode* get(std::uint64_t i);
 
 		void serialize(FILE* file); // сохранение в файл (файл открыт с помощью fopen(path, "wb"))
 		void deserialize(FILE* file); // загрузка из файла (файл открыт с помощью fopen(path, "rb"))
